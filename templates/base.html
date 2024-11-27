@@ -1,0 +1,113 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header con Efecto de Hover</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f9f9f9;
+        }
+        header {
+            background-color: #d6eaf8;
+            color: #333;
+            font-weight: bold;
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        nav {
+            display: flex;
+            gap: 15px;
+        }
+        nav a {
+            color: #333;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        nav a:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .logout-btn {
+            background-color: #e7e7e7c7;
+            color: #333;
+            border: 1px solid #ccc;
+            padding: 8px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.3); /* Agrega sombra */
+            transition: box-shadow 0.3s ease; /* Animación suave */
+        }
+        .logout-btn:hover {
+            background-color: #ff4d4d;
+            color: white;
+            box-shadow: 4px 8px 12px rgba(0, 0, 0, 0.4); /* Sombra más intensa al pasar el mouse */
+        }
+        .user-info {
+            font-size: 14px;
+            font-weight: bold;
+            color: #007bff;
+            padding: 30px;
+        }
+        footer {
+            background-color: #d6eaf8a8; /* Azul/negro medio transparente */
+            color: #000000;
+            padding: 20px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.1);
+            margin-top: auto;
+        }
+        .footer-column {
+            flex: 1;
+            text-align: center;
+        }
+        .footer-column p {
+            font-size: 14px;
+            font-weight: normal;
+            color: #000;
+        }
+
+    </style>
+    {% load static %}
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="/index">Inicio</a>
+            <a href="/comentario">Mis comentarios</a>
+            <a href="/administrador">Administrador</a>            
+            <a href="/about">Acerca de</a>
+        </nav>
+        <div>
+            {% if user.is_authenticated %}
+                <span class="user-info">Hola, {{ user.username }}</span>
+                <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button class="logout-btn">Cerrar sesión</button>
+                </form>
+            {% endif %}
+        </div>
+    </header>
+    {% block content %} {% endblock content %}
+    <footer>
+        <div class="footer-column">
+            <p>&#169; Itzel Palos</p>
+        </div>
+        <div class="footer-column">
+            <p>"Leer abre la mente, alimenta el alma y enriquece la vida."</p>
+        </div>
+    </footer>
+</body>
+</html>

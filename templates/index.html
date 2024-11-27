@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autores y Libros</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+    <style>
+        h1 { text-align: center; }
+    </style>
+</head>
+<body>   
+    {% extends "base.html" %}
+    {% load static %}
+    
+    {% block content %}
+    <div class="container my-5">
+        <h1>Autores y Libros</h1>
+
+    <!-- Autores -->
+        <!-- Campo para buscar -->
+        <input type="text" id="buscar-autor" class="form-control mb-3" placeholder="Buscar autor...">
+        <!-- Aquí va la tabla -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-autores"></tbody>
+        </table>
+        <!-- Paginación -->
+        <div class="d-flex justify-content-between align-items-center my-3">
+            <button id="tabla-autores-prev" class="btn btn-secondary btn-sm">Anterior</button>
+            <span id="tabla-autores-paginacion"></span>
+            <button id="tabla-autores-next" class="btn btn-secondary btn-sm">Siguiente</button>
+        </div>
+
+    <!-- Libros -->
+        <h2 class="mt-5">Libros</h2>
+        <!-- campo  para buscar -->
+        <input type="text" id="buscar-libro" class="form-control mb-3" placeholder="Buscar...">
+        <!-- Aquí va la tabla -->
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Título</th>
+                    <th>Autor</th>
+                    <th>Editorial</th>
+                    <th>Año</th>
+                    <th>ISBN</th>
+                    <th>Comentario</th>
+                </tr>
+            </thead>
+            <tbody id="tabla-libros"></tbody>
+        </table>
+        <!-- Paginación -->
+        <div class="d-flex justify-content-between align-items-center my-3">
+            <button id="tabla-libros-prev" class="btn btn-secondary btn-sm">Anterior</button>
+            <span id="tabla-libros-paginacion"></span>
+            <button id="tabla-libros-next" class="btn btn-secondary btn-sm">Siguiente</button>
+        </div>
+    </div>
+
+    <!-- Scripts necesarios -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let datosAutores = [];
+        let datosLibros = [];
+
+        function cargarConPaginacion(data, tablaId, filasPorPagina = 5, callback = null) {
+            const tabla = document.getElementById(tablaId);
+            const totalFilas = data.length;
+            let paginaActual = 1;
+            const totalPaginas = Math.ceil(totalFilas / filasPorPagina);
+
+            function renderizarPagina(pagina) {
+                tabla.innerHTML = '';
+                const inicio = (pagina - 1) * filasPorPagina;
+                const fin = inicio + filasPorPagina;
+
+                data.slice(inicio, fin).forEach(fila => {
+                    tabla.insertAdjacentHTML('beforeend', fila);
+                });
+
+                document.getElementById(`${tablaId}-paginacion`).innerText = `Página ${pagina} de ${totalPaginas}`;
+                if (callback) callback();
+            }
+
+            document.getElementById(`${tablaId}-prev`).addEventListener('click', () => {
+                if (paginaActual > 1) {
+                    paginaActual--;
+                    renderizarPagina(paginaActual);
+                }
+            });
+
+            document.getElementById(`${tablaId}-next`).addEventListener('click', () => {
+                if (paginaActual < totalPaginas) {
+                    paginaActual++;
+                    renderizarPagina(paginaActual);
+                }
+            });
+
+            renderizarPagina(paginaActual);
+        }
+
+
+        function cargarAutores() {
+            // enviar solicitud http (get) para obtener los autores
+            $.getJSON('/obtener-autores/', function(data) {
+                datosAutores = data.data.map(autor => `
+                    <tr>
+                        <td>${autor.nombre}</td>
+                    </tr>
+                `);
+                cargarConPaginacion(datosAutores, 'tabla-autores');
+            });
+        }
+
+       // $.getJSON es un método de jQuery que se utiliza para realizar solicitudes AJAX
+        function cargarLibros() {
+            // enviar solicitud http (get) para obtener los autores
+            $.getJSON('/obtener-libros/', function(data) {
+                datosLibros = data.data.map(libro => `
+                    <tr>
+                        <td>${libro.titulo}</td>
+                        <td>${libro.autor}</td>
+                        <td>${libro.editorial}</td>
+                        <td>${libro.anio}</td>
+                        <td>${libro.isbn}</td>
+                        <td>
+                            <div id="comentarios-${libro.isbn}">
+                                <ul id="comentarios-list-${libro.isbn}">
+                                    <!-- Los comentarios se agregarán aquí dinámicamente -->
+                                </ul>
+                                <textarea class="form-control mb-2" rows="2" id="comentario-${libro.isbn}" placeholder="Escribe un comentario..."></textarea>
+                                <button class="btn btn-primary btn-sm" onclick="agregarComentario('${libro.isbn}')">Agregar</button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
+
+                cargarConPaginacion(datosLibros, 'tabla-libros', 5, () => {
+                    // Llama a cargarComentarios para los libros visibles
+                    data.data.forEach(libro => cargarComentarios(libro.isbn));
+                });
+            });
+        }
+
+        // AJAX permite a las aplicaciones web comunicarse con el servidor, 
+        // recuperando o enviando datos sin necesidad de recargar toda la página. 
+        // $.ajax envía una solicitud HTTP al servidor (GET, POST, PUT, DELETE, etc.) y procesa la respuesta.
+        function agregarComentario(libro_isbn) {
+            const comentarioTexto = $(`#comentario-${libro_isbn}`).val();
+            if (comentarioTexto) {
+                $.ajax({
+                    url: `/agregar-comentario/${libro_isbn}/`,
+                    method: 'POST',
+                    data: {
+                        comentario: comentarioTexto,
+                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                    },
+                    success: function(response) {
+                        if (response.status === "success") {
+                            cargarComentarios(libro_isbn);
+                            $(`#comentario-${libro_isbn}`).val('');
+                        } else {
+                            alert(response.message);
+                        }
+                    },
+                    error: function(error) {
+                        alert('Hubo un error al agregar el comentario');
+                    }
+                });
+            }
+        }
+        
+        function cargarComentarios(libro_isbn) {
+            $.getJSON(`/obtener-comentarios/${libro_isbn}/`, function(data) {
+                const comentariosList = $(`#comentarios-list-${libro_isbn}`);
+                const comentarioDiv = $(`#comentarios-${libro_isbn}`);
+                comentariosList.empty();
+
+                // Mostrar los comentarios solo del usuario actual
+                if (data.data.length > 0) {
+                    data.data.forEach(comentario => {
+                        comentariosList.append(`<li>${comentario.comentario}</li>`);
+                    });
+                }
+
+                // Mostrar el formulario de comentario solo si el usuario no ha comentado
+                if (data.data.length === 0) {
+                    comentarioDiv.find('textarea, button').show();
+                } else {
+                    comentarioDiv.find('textarea, button').hide();
+                }
+            });
+        }
+
+        function filtrarTabla(inputId, datosOriginales, tablaId) {
+            const filtro = document.getElementById(inputId).value.toLowerCase();
+            const datosFiltrados = datosOriginales.filter(html => html.toLowerCase().includes(filtro));
+            cargarConPaginacion(datosFiltrados, tablaId, 5, () => {
+                // Extraer ISBNs de los libros visibles y cargar sus comentarios
+                const idsVisibles = datosFiltrados.map(fila => {
+                    const isbnMatch = fila.match(/id="comentarios-(.+?)"/);
+                    return isbnMatch ? isbnMatch[1] : null;
+                }).filter(id => id);
+
+                idsVisibles.forEach(id => cargarComentarios(id));
+            });
+        }
+
+        //Eventos de búsqueda
+        document.getElementById('buscar-autor').addEventListener('input', () => filtrarTabla('buscar-autor', datosAutores, 'tabla-autores'));
+        document.getElementById('buscar-libro').addEventListener('input', () => filtrarTabla('buscar-libro', datosLibros, 'tabla-libros'));
+        $(document).ready(function() {
+            cargarAutores();
+            cargarLibros();
+        });
+    </script>
+    {% endblock content %}
+</body>
+</html>

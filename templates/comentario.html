@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Comentarios</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css">
+</head>
+<body>
+    {% extends "base.html" %}
+    {% load static %}
+
+    {% block content %}
+    <div class="container my-5">
+        <h1>Mis Comentarios</h1>
+        <div id="comentarios-container" class="row gy-4">
+            <!-- Los comentarios del usuario actual se insertarán aquí dinámicamente -->
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function cargarMisComentarios() {
+            $.getJSON('/obtener-mis-comentarios/', function(data) {
+                const container = $('#comentarios-container');
+                container.empty();
+
+                if (data.data.length === 0) {
+                    container.append('<p class="text-center">No has hecho comentarios todavía.</p>');
+                    return;
+                }
+
+                data.data.forEach(comentario => {
+                    const card = `
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h5 class="card-title">${comentario.libro.titulo}</h5>
+                                    <h6 class="card-subtitle mb-2 text-muted">${comentario.libro.autor}</h6>
+                                    <p class="card-text"><strong>Editorial:</strong> ${comentario.libro.editorial}</p>
+                                    <p class="card-text"><strong>Año:</strong> ${comentario.libro.anio}</p>
+                                    <p class="card-text"><strong>ISBN:</strong> ${comentario.libro.isbn}</p>
+                                    <p class="card-text"><strong>Comentario:</strong> ${comentario.comentario}</p>
+                                    <div class="d-flex">
+                                        <button class="btn btn-warning btn-sm me-2" onclick="modificarComentario(${comentario.id})">Modificar</button>
+                                        <button class="btn btn-danger btn-sm" onclick="eliminarComentario(${comentario.id})">Eliminar</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>`;
+                    container.append(card);
+                });
+            });
+        }
+
+        function modificarComentario(comentarioId) {
+            const nuevoComentario = prompt('Edita tu comentario:');
+            if (nuevoComentario) {
+                $.ajax({
+                    url: `/modificar-comentario/${comentarioId}/`,
+                    method: 'POST',
+                    data: {
+                        comentario: nuevoComentario,
+                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            cargarMisComentarios();
+                        } else {
+                            alert(response.mensaje);
+                        }
+                    }
+                });
+            }
+        }
+
+        function eliminarComentario(comentarioId) {
+            if (confirm('¿Estás seguro de que deseas eliminar este comentario?')) {
+                $.ajax({
+                    url: `/eliminar-comentario/${comentarioId}/`,
+                    method: 'POST',
+                    data: {
+                        csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val(),
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            cargarMisComentarios();
+                        } else {
+                            alert(response.mensaje);
+                        }
+                    }
+                });
+            }
+        }
+
+        $(document).ready(function() {
+            cargarMisComentarios();
+        });
+    </script>
+    {% endblock content %}
+</body>
+</html>
